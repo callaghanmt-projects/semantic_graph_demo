@@ -78,6 +78,40 @@ def build_graph(paper_id, _client, limit_refs, limit_cites):
                 edges.append(Edge(source=details.paperId, target=cite.paperId, label="sparked", color="#BDC3C7"))       
     return nodes, edges
 
+
+def render_paper_metadata(paper, header="📄 Selected paper"):
+    """Display basic bibliographic details for a Semantic Scholar paper object."""
+    if not paper:
+        return
+
+    authors = []
+    for author in getattr(paper, "authors", []) or []:
+        name = getattr(author, "name", None)
+        if not name and isinstance(author, dict):
+            name = author.get("name")
+        if name:
+            authors.append(name)
+
+    authors_str = ", ".join(authors) if authors else "Unknown authors"
+    year = getattr(paper, "year", None) or "n.d."
+
+    st.subheader(header)
+    st.markdown(f"**{getattr(paper, 'title', 'Untitled')}**")
+    st.caption(f"{authors_str} ({year})")
+
+    venue = getattr(paper, "venue", None)
+    if venue:
+        st.write(f"Venue: {venue}")
+
+    url = getattr(paper, "url", None)
+    if url:
+        st.write(f"[View on Semantic Scholar]({url})")
+
+    abstract = getattr(paper, "abstract", None)
+    if abstract:
+        snippet = abstract[:600] + ("..." if len(abstract) > 600 else "")
+        st.markdown(snippet)
+
 # --- Main Interface ---
 
 # Layout: Search Bar (3 cols) | Reset Button (1 col)
@@ -127,18 +161,60 @@ if query:
             with st.spinner("Tracing citation network..."):
                 try:
                     nodes, edges = build_graph(candidate.paperId, sch, max_refs, max_cites)
-                    
+
                     config = Config(
-                        width=None, 
-                        height=600, 
-                        directed=True, 
-                        physics=True, 
+                        width=None,
+                        height=600,
+                        directed=True,
+                        physics=True,
                         hierarchical=False,
-                        physicsSettings={"barnesHut": {"gravitationalConstant": -3000, "springLength": 100}}
+                        physicsSettings={"barnesHut": {"gravitationalConstant": -3000, "springLength": 100}},
                     )
-                    
+
                     st.success(f"Graph generated: {len(nodes)} Papers found.")
-                    agraph(nodes=nodes, edges=edges, config=config)
+                    selected = agraph(nodes=nodes, edges=edges, config=config)
+
+                    # If the user clicks a node in the graph, fetch and show
+                    # bibliographic details and offer to reuse that paper.
+                    if selected:
+                        # The component may return an id or a small dict; handle both.
+                        paper_id = None
+                        if isinstance(selected, dict):
+                            paper_id = selected.get("id") or selected.get("paperId")
+                        elif isinstance(selected, (str, int)):
+                            paper_id = str(selected)
+
+                        if paper_id:
+                            with st.spinner("Fetching paper details..."):
+                                try:
+                                    paper = sch.get_paper(
+                                        paper_id,
+                                        fields=[
+                                            "title",
+                                            "authors",
+                                            "year",
+                                            "venue",
+                                            "url",
+                                            "abstract",
+                                        ],
+                                    )
+                                except Exception as e:
+                                    st.error(f"Failed to fetch paper details: {e}")
+                                    paper = None
+
+                            if paper:
+                                render_paper_metadata(paper)
+                                if st.button(
+                                    "🔍 Use this paper as search seed",
+                                    key=f"use_seed_{paper.paperId}",
+                                ):
+                                    st.session_state.search_query = paper.title or ""
+                                    st.info(
+                                        "Search updated with selected paper title. "
+                                        "You can now confirm & remap from the top section."
+                                    )
+                        else:
+                            st.warning("Could not determine the selected paper from the graph click.")
                     
                 except Exception as e:
                     st.error(f"Graph error: {e}")
