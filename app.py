@@ -1,4 +1,5 @@
 import os
+import time
 
 import streamlit as st
 from semanticscholar import SemanticScholar
@@ -74,11 +75,34 @@ def clean_title(title, length=30):
     if not title: return "Unknown Title"
     return title[:length] + "..." if len(title) > length else title
 
+
+def call_semantic_scholar(func, *args, **kwargs):
+    """Rate-limited wrapper for Semantic Scholar calls (≈1 request/sec per session)."""
+    min_interval = 1.1  # seconds
+    last_ts = st.session_state.get("_last_s2_call_ts", 0.0)
+    now = time.time()
+    wait = min_interval - (now - last_ts)
+    if wait > 0:
+        time.sleep(wait)
+
+    result = func(*args, **kwargs)
+    st.session_state["_last_s2_call_ts"] = time.time()
+    return result
+
 @st.cache_data(show_spinner=False)
 def build_graph(paper_id, _client, limit_refs, limit_cites):
-    details = _client.get_paper(
-        paper_id, 
-        fields=['title', 'authors', 'year', 'references.title', 'references.paperId', 'citations.title', 'citations.paperId']
+    details = call_semantic_scholar(
+        _client.get_paper,
+        paper_id,
+        fields=[
+            'title',
+            'authors',
+            'year',
+            'references.title',
+            'references.paperId',
+            'citations.title',
+            'citations.paperId',
+        ],
     )
     nodes = []
     edges = []
@@ -180,7 +204,7 @@ if query:
     # 1. Search Step
     with st.spinner("Searching..."):
         try:
-            results = sch.search_paper(query, limit=1)
+            results = call_semantic_scholar(sch.search_paper, query, limit=1)
         except Exception as e:
             st.error(f"Search failed: {e}")
             results = []
@@ -268,7 +292,8 @@ if query:
                         if paper_id:
                             with st.spinner("Fetching paper details..."):
                                 try:
-                                    paper = sch.get_paper(
+                                    paper = call_semantic_scholar(
+                                        sch.get_paper,
                                         paper_id,
                                         fields=[
                                             "title",
