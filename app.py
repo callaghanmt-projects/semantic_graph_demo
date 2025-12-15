@@ -22,6 +22,15 @@ def reset_app():
 
 st.title("🐇 The Research Rabbit Hole")
 
+st.markdown(
+    """
+    1. Type the title of a paper and press Enter.
+    2. Check the suggested match and tick **Confirm & Map**.
+    3. Explore the graph: drag nodes to rearrange, or click a node to
+       see its bibliographic details and reuse it as a new starting point.
+    """
+)
+
 # --- Rubric & Intro ---
 with st.expander("📚 About the Data: What is Semantic Scholar?", expanded=False):
     st.markdown("""
@@ -185,7 +194,7 @@ if query:
                         treeSpacing=300,
                     )
 
-                    st.success(f"Graph generated: {len(nodes)} Papers found.")
+                    st.success(f"Graph generated: {len(nodes)} papers found.")
                     selected = agraph(nodes=nodes, edges=edges, config=config)
 
                     # If the user clicks a node in the graph, fetch and show
@@ -243,4 +252,11 @@ if query:
 if query:
     st.divider()
     st.markdown("### 🧠 Why this matters")
-    st.info("By verifying the paper first, we ensure the 'Seed Node' is ground truth, preventing the AI from hallucinating the starting point.")
+    st.info("By verifying the paper first, we ensure the 'seed node' is ground truth, preventing the AI from hallucinating the starting point.")
+
+    st.markdown("### 🔍 Graph key")
+    st.markdown(
+        "- **Red node**: Selected seed paper  \n"
+        "- **Blue nodes**: Papers this work cites (ancestors)  \n"
+        "- **Green nodes**: Papers that cite this work (descendants)"
+    )
