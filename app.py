@@ -48,22 +48,35 @@ with st.expander("📚 About the Data: What is Semantic Scholar?", expanded=Fals
 with st.sidebar:
     st.header("⚙️ Configuration")
 
-    # Load API key from a local file that is not tracked by Git.
+    # Load API key from (a) local file, (b) environment variable, else fall back to public API.
     key_path = os.path.join(os.path.dirname(__file__), "semantic_scholar_api_key.txt")
     api_key = None
+    source = None
+
     if os.path.exists(key_path):
         try:
             with open(key_path, "r", encoding="utf-8") as fh:
-                api_key = fh.read().strip() or None
+                api_key = (fh.read() or "").strip() or None
+            if api_key:
+                source = "file"
         except OSError:
             api_key = None
 
+    if not api_key:
+        env_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY", "").strip()
+        if env_key:
+            api_key = env_key
+            source = "env"
+
     if api_key:
         sch = SemanticScholar(api_key=api_key)
-        st.success("Semantic Scholar API key loaded from local configuration.")
+        if source == "file":
+            st.success("Semantic Scholar API key loaded from local configuration file.")
+        else:
+            st.success("Semantic Scholar API key loaded from environment variable.")
     else:
         sch = SemanticScholar()
-        st.info("No local API key found – using the public Semantic Scholar API (rate limited). 🐢")
+        st.info("No API key configured – using the public Semantic Scholar API (rate limited). 🐢")
 
     st.divider()
     st.subheader("Graph limits")
