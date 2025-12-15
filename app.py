@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 from semanticscholar import SemanticScholar
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -44,14 +46,23 @@ with st.expander("📚 About the Data: What is Semantic Scholar?", expanded=Fals
 # --- Sidebar: Setup ---
 with st.sidebar:
     st.header("⚙️ Configuration")
-    api_key = st.text_input("Semantic Scholar API Key", type="password", help="Leave blank for free tier.")
-    
+
+    # Load API key from a local file that is not tracked by Git.
+    key_path = os.path.join(os.path.dirname(__file__), "semantic_scholar_api_key.txt")
+    api_key = None
+    if os.path.exists(key_path):
+        try:
+            with open(key_path, "r", encoding="utf-8") as fh:
+                api_key = fh.read().strip() or None
+        except OSError:
+            api_key = None
+
     if api_key:
         sch = SemanticScholar(api_key=api_key)
-        st.success("Validated: Pro Mode Active 🚀")
+        st.success("Semantic Scholar API key loaded from local configuration.")
     else:
         sch = SemanticScholar()
-        st.info("Free Mode Active (Rate Limited) 🐢")
+        st.info("No local API key found – using the public Semantic Scholar API (rate limited). 🐢")
 
     st.divider()
     st.subheader("Graph limits")

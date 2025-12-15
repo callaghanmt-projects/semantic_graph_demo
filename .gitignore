@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local API key for Semantic Scholar (do not commit)
+semantic_scholar_api_key.txt

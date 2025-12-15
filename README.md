@@ -48,12 +48,13 @@ We use [uv](https://github.com/astral-sh/uv) for fast Python package management.
 3. Click **"New App"** and select this repository.
 4. Streamlit will detect the `requirements.txt` file and install the libraries automatically.
 
-## 🔑 API Keys (Optional)
+## 🔑 API keys (optional)
 
-This app is designed to be **Zero-Config**:
+This app is designed to be **zero‑config** for the free tier, but can also use a private API key for higher limits.
 
-* **Default:** If you leave the API key box blank, the app uses the Public Semantic Scholar API (lower rate limits, slower).
-* **Pro Mode:** If you have a free API key from [Semantic Scholar](https://www.semanticscholar.org/product/api), enter it in the sidebar to increase speed and graph size limits.
+* **Default:** If no key is configured, the app uses the public Semantic Scholar API (lower rate limits, slower).
+* **Local key (recommended):** Create a text file called `semantic_scholar_api_key.txt` in the project root (next to `app.py`) containing **only** your key. This file is already listed in `.gitignore`, so it will not be committed to Git.
+* On start‑up the app will automatically load this file and use the key; there is no longer a UI field for entering keys.
 
 ## 📚 Tech Stack
 
