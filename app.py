@@ -124,6 +124,22 @@ def render_paper_metadata(paper, header="📄 Selected paper"):
         snippet = abstract[:600] + ("..." if len(abstract) > 600 else "")
         st.markdown(snippet)
 
+    # Full formatted citation, where available
+    citation_styles = getattr(paper, "citationStyles", None) or {}
+    # Prefer APA, fall back to any available style
+    citation = (
+        citation_styles.get("APA")
+        if isinstance(citation_styles, dict)
+        else None
+    )
+    if not citation and isinstance(citation_styles, dict) and citation_styles:
+        # Take the first available style as a fallback
+        citation = next(iter(citation_styles.values()))
+
+    if citation:
+        st.markdown("**Full citation**")
+        st.code(citation, language="text")
+
 # --- Main Interface ---
 
 # If a new search query was staged by a button click, apply it
@@ -138,7 +154,7 @@ col_search, col_reset = st.columns([4, 1])
 with col_search:
     # We bind this input to 'st.session_state.search_query'
     query = st.text_input(
-        "Enter a paper title to jump in:", 
+        "Enter a paper title start:", 
         key="search_query",
         placeholder="e.g. Attention is All You Need"
     )
@@ -167,6 +183,37 @@ if query:
         col_meta, col_confirm = st.columns([3, 1])
         with col_meta:
             st.markdown(f"**{candidate.title}** ({candidate.year})")
+
+            # Basic citation-style line: authors and source
+            author_names = []
+            for author in getattr(candidate, "authors", []) or []:
+                name = getattr(author, "name", None)
+                if not name and isinstance(author, dict):
+                    name = author.get("name")
+                if name:
+                    author_names.append(name)
+
+            authors_str = ", ".join(author_names[:5])
+            if len(author_names) > 5:
+                authors_str += " et al."
+
+            venue = getattr(candidate, "venue", None)
+            # Some records carry venue via a nested journal object
+            journal = getattr(candidate, "journal", None)
+            if not venue and journal is not None:
+                venue = getattr(journal, "name", None)
+
+            meta_bits = []
+            if authors_str:
+                meta_bits.append(authors_str)
+            if candidate.year:
+                meta_bits.append(str(candidate.year))
+            if venue:
+                meta_bits.append(venue)
+
+            if meta_bits:
+                st.caption(" • ".join(meta_bits))
+
             if candidate.abstract:
                 st.caption(f"{candidate.abstract[:300]}...")
         
@@ -219,6 +266,7 @@ if query:
                                             "venue",
                                             "url",
                                             "abstract",
+                                            "citationStyles",
                                         ],
                                     )
                                 except Exception as e:
