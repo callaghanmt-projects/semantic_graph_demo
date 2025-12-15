@@ -162,13 +162,18 @@ if query:
                 try:
                     nodes, edges = build_graph(candidate.paperId, sch, max_refs, max_cites)
 
+                    # Use a hierarchical left-to-right layout with larger spacing
+                    # and physics disabled so dragged node positions "stick".
                     config = Config(
                         width=None,
                         height=600,
                         directed=True,
-                        physics=True,
-                        hierarchical=False,
-                        physicsSettings={"barnesHut": {"gravitationalConstant": -3000, "springLength": 100}},
+                        physics=False,
+                        hierarchical=True,
+                        direction="LR",
+                        levelSeparation=250,
+                        nodeSpacing=200,
+                        treeSpacing=300,
                     )
 
                     st.success(f"Graph generated: {len(nodes)} Papers found.")
