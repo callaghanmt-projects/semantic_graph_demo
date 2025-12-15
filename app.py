@@ -11,11 +11,14 @@ if 'search_query' not in st.session_state:
     st.session_state.search_query = ''
 if 'graph_data' not in st.session_state:
     st.session_state.graph_data = None
+if 'pending_search_query' not in st.session_state:
+    st.session_state.pending_search_query = ''
 
 def reset_app():
     """Callback to wipe everything clean"""
     st.session_state.search_query = ''
     st.session_state.graph_data = None
+    st.session_state.pending_search_query = ''
 
 st.title("🐇 The Research Rabbit Hole")
 
@@ -113,6 +116,12 @@ def render_paper_metadata(paper, header="📄 Selected paper"):
         st.markdown(snippet)
 
 # --- Main Interface ---
+
+# If a new search query was staged by a button click, apply it
+# before instantiating the text input bound to this key.
+if st.session_state.pending_search_query:
+    st.session_state.search_query = st.session_state.pending_search_query
+    st.session_state.pending_search_query = ''
 
 # Layout: Search Bar (3 cols) | Reset Button (1 col)
 col_search, col_reset = st.columns([4, 1])
@@ -213,7 +222,10 @@ if query:
                                     "🔍 Use this paper as search seed",
                                     key=f"use_seed_{paper.paperId}",
                                 ):
-                                    st.session_state.search_query = paper.title or ""
+                                    # Stage the new query so it is applied
+                                    # on the next run *before* the text
+                                    # input widget is instantiated.
+                                    st.session_state.pending_search_query = paper.title or ""
                                     st.info(
                                         "Search updated with selected paper title. "
                                         "You can now confirm & remap from the top section."
